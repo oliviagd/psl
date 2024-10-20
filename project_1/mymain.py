@@ -41,10 +41,6 @@ def clean_and_process_numeric_features(data):
     for col in data.columns:
         data.loc[:, col] = data[col].fillna(data[col].median())
 
-    # add some features
-    data.loc[:, 'Total_SF'] = data[['First_Flr_SF','Second_Flr_SF','Total_Bsmt_SF']].copy().sum(axis=1)
-    data.loc[:, 'Total_Bath'] = data.loc[:,'Full_Bath'] + (0.5 * data.loc[:,'Half_Bath'])
-
     cols = data.columns
     
     # standardize the features
@@ -52,7 +48,20 @@ def clean_and_process_numeric_features(data):
     data = scaler.fit_transform(data)
     return pd.DataFrame(data, columns = cols)
    
+def add_feature_engineered_cols(data):
+    
+    # add some features
+    data.loc[:, 'Total_SF'] = data[['First_Flr_SF','Second_Flr_SF','Total_Bsmt_SF']].copy().sum(axis=1)
+    data.loc[:, 'Total_Bath'] = data.loc[:,'Full_Bath'] + (0.5 * data.loc[:,'Half_Bath'])
+    data['Has_Pool'] = data['Pool_QC'].map({"No_Pool":0, 'Excellent':1, 'Good':1, 'Typical':0, 'Fair':0})
+    data['Has_Quality_Kitchen'] = data['Kitchen_Qual'].map({'Excellent':1, 'Good':1, 'Typical':0, 'Fair':0, 'Poor':0})
+    data['Has_Quality_Basement'] = data['Bsmt_Qual'].map({'Excellent':1, 'Good':1, 'Typical':0, 'Fair':0, 'Poor':0})
 
+    # drop some of the cols
+    data = data.drop(columns=['Bsmt_Qual', 'Kitchen_Qual', 'Pool_QC'])
+
+    return data
+    
 def preprocess_data(train: pd.DataFrame, test: pd.DataFrame):
 
     X_train = train.drop(columns=["Sale_Price", "PID"])
@@ -63,8 +72,13 @@ def preprocess_data(train: pd.DataFrame, test: pd.DataFrame):
     # remove features that have high number of null data confirm with
     # nulls = data.isna().sum()
     # print(data[data > 0])
-    X_train = X_train.drop(columns=["Mas_Vnr_Type", "Garage_Yr_Blt", "Misc_Feature"])
-    X_test = X_test.drop(columns=["Mas_Vnr_Type", "Garage_Yr_Blt", "Misc_Feature"])
+    cols_to_drop = ['BsmtFin_SF_2', 'Misc_Val', 'Mo_Sold', 'Three_season_porch',
+       'Year_Sold', 'Bsmt_Half_Bath', 'Low_Qual_Fin_SF', 'Pool_Area']
+    X_train = X_train.drop(columns=cols_to_drop)
+    X_test = X_test.drop(columns=cols_to_drop)
+
+    X_train = add_feature_engineered_cols(X_train)
+    X_test = add_feature_engineered_cols(X_test)
 
     numeric_cols = X_train.select_dtypes(include=[np.number]).columns
     categorical_cols = X_train.select_dtypes(include=['object', 'category']).columns
