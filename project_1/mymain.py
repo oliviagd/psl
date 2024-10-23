@@ -116,4 +116,4 @@ if __name__ == "__main__":
         t1 = time.time()
         linear_rmse, tree_rmse = main(join(fold_dir, 'train.csv'), join(fold_dir, 'test.csv'), join(fold_dir, 'mysubmission1.txt'), join(fold_dir, 'mysubmission2.txt'))
         duration = time.time() - t1
-        print(f"Fold {fold} ({fold_dir}) - rmse(linear): {linear_rmse} rmse(tree): {tree_rmse} - {duration:.2f} s")
+        print(f"Fold {fold} ({fold_dir}) - rmse(linear): {linear_rmse:.4f} rmse(tree): {tree_rmse:.4f} - {duration:.2f} s")
