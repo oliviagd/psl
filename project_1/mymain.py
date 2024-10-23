@@ -120,7 +120,7 @@ def main(train_file, test_file):
     
     linear_predictions = fit_ridge(X_train, y_train, X_test, alpha=1.0)
     #tree_predictions = fit_tree(X_train, y_train, X_test)
-
+    
     save_predictions(linear_predictions, "mysubmission1.txt")
     #save_predictions(tree_predictions, "mysubmission2.txt")
 

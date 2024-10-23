@@ -5,9 +5,10 @@ name = "pypi"
 
 [packages]
 notebook = "*"
-numpy = "*"
+numpy = "<2"
 matplotlib = "*"
 seaborn = "*"
+python-glmnet = "*"
 
 [dev-packages]
 
