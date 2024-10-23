@@ -1,0 +1,13 @@
+catboost==1.2.7
+category-encoders==2.6.3
+feature-engine==1.8.1
+fonttools==4.54.1
+glmnet-py==0.1.0b2
+lightgbm==4.5.0
+numpy==1.26.4
+pandas==2.2.3
+rpy2==3.5.16
+scikit-learn==1.5.2
+scipy==1.14.1
+xgboost==2.1.1
+polars==1.9.0
