@@ -77,16 +77,16 @@ def main(train_file, test_file, linear_pred_file, tree_pred_file):
     # Step 1: Preprocess the training data, then fit the two models.
     train_data = pd.read_csv(train_file)
     X_train, y_train, num_cols, cat_cols, scaler, ohe = preprocess_train_data(train_data)
-    # linear_model = fit_ridge(X, y)
+    linear_model = fit_ridge(X_train, y_train)
     tree_model = fit_tree(X_train, y_train)
 
     # Step 2: Preprocess test data, then save predictions into two files: mysubmission1.txt and mysubmission2.txt
     test_data = pd.read_csv(test_file)
     X_test, pid = preprocess_test_data(test_data, num_cols, cat_cols, scaler, ohe)
-    # linear_pred = linear_model.predict(X)
+    linear_pred = linear_model.predict(X_test)
     tree_pred = tree_model.predict(X_test)
 
-    # save_predictions(pid, np.exp(linear_pred), linear_pred_file)
+    save_predictions(pid, np.exp(linear_pred), linear_pred_file)
     save_predictions(pid, np.exp(tree_pred), tree_pred_file)
 
     # TODO: Delete before submitting
@@ -102,7 +102,7 @@ def compute_rmse(linear_pred_file, tree_pred_file):
         assert np.all(actual.PID == pred.PID)
         return np.sqrt(np.mean((y_pred - y_actual) ** 2))
 
-    return np.inf, rmse(tree_pred_file)
+    return rmse(linear_pred_file), rmse(tree_pred_file)
 
 
 if __name__ == "__main__":
