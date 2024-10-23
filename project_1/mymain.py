@@ -4,14 +4,17 @@ import time
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from sklearn.linear_model import Ridge
+from sklearn.linear_model import ElasticNetCV
+from scipy.stats.mstats import winsorize
 from xgboost import XGBRegressor
 
 
-def fit_ridge(X, y, alpha=1.0):
-    ridge_model = Ridge(alpha=alpha)
-    ridge_model.fit(X, y)
-    return ridge_model
+def fit_linear(X, y, alpha=1.0):
+    np.random.seed(1735)
+    # Got the idea to use ElasticNetCV from this post - https://campuswire.com/c/GB46E5679/feed/609
+    model = ElasticNetCV()
+    model.fit(X, y)
+    return model
 
 
 def fit_tree(X, y):
@@ -23,11 +26,16 @@ def fit_tree(X, y):
 
 
 def preprocess_train_data(train_data):
-    X = train_data.drop(columns=["Sale_Price", "PID"])
+    X = train_data.drop(columns=["Sale_Price", "PID",
+                                 'Street', 'Utilities', 'Condition_2', 'Roof_Matl', 'Heating', 'Pool_QC', 'Misc_Feature', 'Low_Qual_Fin_SF', 'Pool_Area', 'Longitude','Latitude'])
     y = train_data.Sale_Price.apply(np.log)
 
-    # Following instructions here - https://campuswire.com/c/GB46E5679/feed/326
+    # Following instructions here - https://campuswire.com/c/GB46E5679/feed/326 https://campuswire.com/c/GB46E5679/feed/328
     X['Garage_Yr_Blt'] = X['Garage_Yr_Blt'].fillna(0)
+
+    capped_cols = ["Lot_Frontage", "Lot_Area", "Mas_Vnr_Area", "BsmtFin_SF_2", "Bsmt_Unf_SF", "Total_Bsmt_SF", "Second_Flr_SF", 'First_Flr_SF', "Gr_Liv_Area", "Garage_Area", "Wood_Deck_SF", "Open_Porch_SF", "Enclosed_Porch", "Three_season_porch", "Screen_Porch", "Misc_Val"]
+    X[capped_cols] = winsorize(X[capped_cols].to_numpy(), limits=[0, 0.05], axis=0)
+    capped_col_values = X[capped_cols].max()
 
     num_cols = X.select_dtypes(include=[np.number]).columns
     cat_cols = X.select_dtypes(include=['object', 'category']).columns
@@ -46,14 +54,15 @@ def preprocess_train_data(train_data):
         axis=1
     )
 
-    return X, y, num_cols, cat_cols, scaler, ohe
+    return X, y, capped_cols, capped_col_values, num_cols, cat_cols, scaler, ohe
 
 
-def preprocess_test_data(test_data, num_cols, cat_cols, scaler, ohe):
-    X = test_data.drop(columns=["PID"])
+def preprocess_test_data(test_data, capped_cols, capped_col_values, num_cols, cat_cols, scaler, ohe):
+    X = test_data.drop(columns=["PID",
+                                'Street', 'Utilities', 'Condition_2', 'Roof_Matl', 'Heating', 'Pool_QC', 'Misc_Feature', 'Low_Qual_Fin_SF', 'Pool_Area', 'Longitude','Latitude'])
 
-    # Following instructions here - https://campuswire.com/c/GB46E5679/feed/326
     X['Garage_Yr_Blt'] = X['Garage_Yr_Blt'].fillna(0)
+    X[capped_cols] = np.minimum(X[capped_cols].to_numpy(), capped_col_values)
 
     X = pd.concat(
         [
@@ -76,13 +85,13 @@ def save_predictions(pid, predictions, filename):
 def main(train_file, test_file, linear_pred_file, tree_pred_file):
     # Step 1: Preprocess the training data, then fit the two models.
     train_data = pd.read_csv(train_file)
-    X_train, y_train, num_cols, cat_cols, scaler, ohe = preprocess_train_data(train_data)
-    linear_model = fit_ridge(X_train, y_train)
+    X_train, y_train, capped_cols, capped_col_values, num_cols, cat_cols, scaler, ohe = preprocess_train_data(train_data)
+    linear_model = fit_linear(X_train, y_train)
     tree_model = fit_tree(X_train, y_train)
 
     # Step 2: Preprocess test data, then save predictions into two files: mysubmission1.txt and mysubmission2.txt
     test_data = pd.read_csv(test_file)
-    X_test, pid = preprocess_test_data(test_data, num_cols, cat_cols, scaler, ohe)
+    X_test, pid = preprocess_test_data(test_data, capped_cols, capped_col_values, num_cols, cat_cols, scaler, ohe)
     linear_pred = linear_model.predict(X_test)
     tree_pred = tree_model.predict(X_test)
 
@@ -108,7 +117,6 @@ def compute_rmse(linear_pred_file, tree_pred_file):
 if __name__ == "__main__":
     # TODO: Enable before submitting
     # main('./train.csv', './test.csv', './mysubmission1.txt', './mysubmission2.txt')
-
 
     # TODO: Delete before submitting
     for fold in range(1, 11):
