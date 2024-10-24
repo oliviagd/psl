@@ -43,7 +43,7 @@ def preprocess_train_data(train_data):
     scaler = StandardScaler()
     scaler.fit(X[num_cols])
 
-    ohe = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+    ohe = OneHotEncoder(sparse_output=False, handle_unknown='ignore', min_frequency=0.01)
     ohe.fit(X[cat_cols])
 
     X = pd.concat(
