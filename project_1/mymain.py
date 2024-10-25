@@ -9,7 +9,7 @@ from scipy.stats.mstats import winsorize
 from xgboost import XGBRegressor
 
 
-def fit_linear(X, y, alpha=1.0):
+def fit_linear(X, y):
     np.random.seed(1735)
     # Got the idea to use ElasticNetCV from this post - https://campuswire.com/c/GB46E5679/feed/609
     model = ElasticNetCV()
