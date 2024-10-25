@@ -1,5 +1,5 @@
-from os.path import join, dirname
-import time
+# from os.path import join, dirname
+# import time
 
 import numpy as np
 import pandas as pd
@@ -98,29 +98,29 @@ def main(train_file, test_file, linear_pred_file, tree_pred_file):
     save_predictions(pid, np.exp(tree_pred), tree_pred_file)
 
     # TODO: Delete before submitting
-    return compute_rmse(linear_pred_file, tree_pred_file)
+    # return compute_rmse(linear_pred_file, tree_pred_file)
 
-def compute_rmse(linear_pred_file, tree_pred_file):
-    actual = pd.read_csv(join(dirname(linear_pred_file), 'test_y.csv'))
-    y_actual = actual.Sale_Price.apply(np.log).to_numpy()
+# def compute_rmse(linear_pred_file, tree_pred_file):
+#     actual = pd.read_csv(join(dirname(linear_pred_file), 'test_y.csv'))
+#     y_actual = actual.Sale_Price.apply(np.log).to_numpy()
 
-    def rmse(pred_file):
-        pred = pd.read_csv(pred_file)
-        y_pred = pred.Sale_Price.apply(np.log).to_numpy()
-        assert np.all(actual.PID == pred.PID)
-        return np.sqrt(np.mean((y_pred - y_actual) ** 2))
+#     def rmse(pred_file):
+#         pred = pd.read_csv(pred_file)
+#         y_pred = pred.Sale_Price.apply(np.log).to_numpy()
+#         assert np.all(actual.PID == pred.PID)
+#         return np.sqrt(np.mean((y_pred - y_actual) ** 2))
 
-    return rmse(linear_pred_file), rmse(tree_pred_file)
+#     return rmse(linear_pred_file), rmse(tree_pred_file)
 
 
 if __name__ == "__main__":
     # TODO: Enable before submitting
-    # main('./train.csv', './test.csv', './mysubmission1.txt', './mysubmission2.txt')
+    main('train.csv', 'test.csv', 'mysubmission1.txt', 'mysubmission2.txt')
 
     # TODO: Delete before submitting
-    for fold in range(1, 11):
-        fold_dir = f'./project_1/proj1/fold{fold}'
-        t1 = time.time()
-        linear_rmse, tree_rmse = main(join(fold_dir, 'train.csv'), join(fold_dir, 'test.csv'), join(fold_dir, 'mysubmission1.txt'), join(fold_dir, 'mysubmission2.txt'))
-        duration = time.time() - t1
-        print(f"Fold {fold} ({fold_dir}) - rmse(linear): {linear_rmse:.4f} rmse(tree): {tree_rmse:.4f} - {duration:.2f} s")
+    # for fold in range(1, 11):
+    #     fold_dir = f'./project_1/proj1/fold{fold}'
+    #     t1 = time.time()
+    #     linear_rmse, tree_rmse = main(join(fold_dir, 'train.csv'), join(fold_dir, 'test.csv'), join(fold_dir, 'mysubmission1.txt'), join(fold_dir, 'mysubmission2.txt'))
+    #     duration = time.time() - t1
+    #     print(f"Fold {fold} ({fold_dir}) - rmse(linear): {linear_rmse:.4f} rmse(tree): {tree_rmse:.4f} - {duration:.2f} s")
