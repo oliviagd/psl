@@ -1,73 +1,45 @@
 import numpy as np
-from scipy.stats import multivariate_normal
 
-def gaussian_pdf_matrix(data, means, Sigma):
+THRESHOLD = 1e-6
+
+def Estep(data, G, prob, means, Sigma):
     """
-    Vectorized computation of the Gaussian PDF for all data points and components.
+    E-step: compute the responsibility matrix
 
     Parameters:
-        data (ndarray): Data points, shape (n, p)
-        means (ndarray): Means of Gaussian components, shape (p, G)
-        Sigma (ndarray): Covariance matrix shared by all components, shape (p, p)
-        
-    Returns:
-        pdf_matrix (ndarray): PDF values for each data point and component, shape (n, G)
+        data (ndarray)
+        G (int)
+        prob (ndarray): mixing weights for each Gaussian component
+        means (ndarray): means of Gaussian components
+        Sigma (ndarray): cov matrix
     """
+    # compute Gaussian PDF values for all data points and components
     n, p = data.shape
-    G = means.shape[1]
     
     Sigma_inv = np.linalg.inv(Sigma)
     det_Sigma = np.linalg.det(Sigma)
     norm_factor = 1.0 / np.sqrt((2 * np.pi) ** p * det_Sigma)
     
-    # Expand data and means for broadcasting
-    diff = data[:, np.newaxis, :] - means.T  # Shape (n, G, p)
+    diff = data[:, np.newaxis, :] - means.T
     
-    # Compute the exponent part in a vectorized way
-    exponent = -0.5 * np.einsum('nik,kl,nil->ni', diff, Sigma_inv, diff)
+    exponent = -0.5 * np.einsum('nik,kl,nil->ni', diff, Sigma_inv, diff)    
+    pdf_matrix = norm_factor * np.exp(exponent)
     
-    # Apply normalization factor
-    pdf_matrix = norm_factor * np.exp(exponent)  # Shape (n, G)
+    # multiply by mixing weights
+    weighted_pdfs = pdf_matrix * prob
     
-    return pdf_matrix
-
-def Estep(data, G, prob, means, Sigma):
-    """
-    E-step: Compute the responsibility matrix (posterior probabilities) in a vectorized way.
-
-    Parameters:
-        data (ndarray): Data points, shape (n, p)
-        G (int): Number of Gaussian components
-        prob (ndarray): Mixing weights for each Gaussian component, shape (G,)
-        means (ndarray): Means of Gaussian components, shape (p, G)
-        Sigma (ndarray): Covariance matrix shared by all components, shape (p, p)
-        
-    Returns:
-        resp (ndarray): Responsibility matrix, shape (n, G)
-    """
-    # Step 1: Compute Gaussian PDF values for all data points and components
-    pdf_matrix = gaussian_pdf_matrix(data, means, Sigma)  # Shape (n, G)
-    
-    # Step 2: Multiply by mixing weights
-    weighted_pdfs = pdf_matrix * prob  # Broadcasting, shape (n, G)
-    
-    # Step 3: Normalize to get responsibilities
-    resp = weighted_pdfs / weighted_pdfs.sum(axis=1, keepdims=True)  # Shape (n, G)
+    # normalize to get responsibilities
+    resp = weighted_pdfs / weighted_pdfs.sum(axis=1, keepdims=True)
     
     return resp
 
 def Mstep(data, resp):
     """
-    M-step: Update parameters based on responsibilities
+    M-step: update parameters based on responsibilities
 
     Parameters:
-        data (ndarray): Data points, shape (n, p)
-        resp (ndarray): Responsibility matrix from E-step, shape (n, G)
-
-    Returns:
-        prob (ndarray): Updated probabilities for each Gaussian component, shape (G,)
-        means (ndarray): Updated means for each Gaussian component, shape (p, G)
-        Sigma (ndarray): Updated shared covariance matrix, shape (p, p)
+        data (ndarray)
+        resp (ndarray): responsibility matrix from E-step, shape (n, G)
     """
     n, p = data.shape
     G = resp.shape[1]
@@ -75,11 +47,11 @@ def Mstep(data, resp):
     Nk = resp.sum(axis=0)  # sum of responsibilities for each component
     prob = Nk / n
 
-    means = np.dot(data.T, resp) / Nk  # Shape (p, G)
+    means = np.dot(data.T, resp) / Nk
 
     Sigma = np.zeros((p, p))
     for k in range(G):
-        diff = data - means[:, k].T  # Shape (n, p)
+        diff = data - means[:, k].T 
         Sigma += np.dot((resp[:, k][:, np.newaxis] * diff).T, diff)
     Sigma /= n
 
@@ -87,46 +59,59 @@ def Mstep(data, resp):
 
 def loglik(data, G, prob, means, Sigma):
     """
-    Calculate the log-likelihood of the data given current parameters
-
+    Compute the log-likelihood of the data given the current parameters of the Gaussian mixture model.
     Parameters:
-        data (ndarray): Data points, shape (n, p)
-        G (int): Number of Gaussian components
-        prob (ndarray): Probabilities of each component, shape (G,)
-        means (ndarray): Means of Gaussian components, shape (p, G)
-        Sigma (ndarray): Covariance matrix shared by all components, shape (p, p)
-
-    Returns:
-        log_likelihood (float): Log-likelihood of the data
+        data (ndarray)
+        G (int)
+        prob (ndarray): mixing weights for each Gaussian component
+        means (ndarray): means of Gaussian components
+        Sigma (ndarray): cov matrix   
     """
     n, p = data.shape
-    log_likelihood = 0
-
-    for i in range(n):
-        likelihood_i = 0
-        for k in range(G):
-            likelihood_i += prob[k] * multivariate_normal.pdf(data[i], mean=means[:, k], cov=Sigma)
-        log_likelihood += np.log(likelihood_i)
-
+    '''
+    Sigma_inv = np.linalg.inv(Sigma)
+    Sigma_det = np.linalg.det(Sigma)
+    normalization_const = 1 / ((2 * np.pi) ** (p / 2) * np.sqrt(Sigma_det))
+    
+    # data minus means for each component
+    diff = data[:, np.newaxis, :] - means.T
+    
+    exponent = -0.5 * np.einsum('nkp, pq, nkq -> nk', diff, Sigma_inv, diff)
+    
+    # gaussian densities: (n, G)
+    component_densities = normalization_const * np.exp(exponent)
+    '''
+    Sigma_inv = np.linalg.inv(Sigma)
+    det_Sigma = np.linalg.det(Sigma)
+    norm_factor = 1.0 / np.sqrt((2 * np.pi) ** p * det_Sigma)
+    
+    diff = data[:, np.newaxis, :] - means.T
+    
+    exponent = -0.5 * np.einsum('nik,kl,nil->ni', diff, Sigma_inv, diff)    
+    pdf_matrix = norm_factor * np.exp(exponent)
+    weighted_densities = pdf_matrix * prob 
+    total_density = np.sum(weighted_densities, axis=1)
+    log_likelihood = np.sum(np.log(total_density))
+    
     return log_likelihood
 
 def myEM(data, G, prob, means, Sigma, itmax=100):
     """
-    Main EM algorithm to estimate parameters of Gaussian Mixture Model
-
+    Runner
+    
     Parameters:
-        data (ndarray): Data points, shape (n, p)
-        G (int): Number of Gaussian components
-        prob (ndarray): Initial probability vector, shape (G,)
-        means (ndarray): Initial means, shape (p, G)
-        Sigma (ndarray): Initial shared covariance matrix, shape (p, p)
-        itmax (int): Maximum number of iterations
+        data (ndarray): data, shape (n, p)
+        G (int): number of Gaussian components
+        prob (ndarray): initial probability vector
+        means (ndarray): initial means
+        Sigma (ndarray): initial cov matrix
+        itmax (int): maximum number of iterations
 
     Returns:
-        prob (ndarray): Final probability vector, shape (G,)
-        means (ndarray): Final means for each Gaussian component, shape (p, G)
-        Sigma (ndarray): Final shared covariance matrix, shape (p, p)
-        loglik (float): Final log-likelihood of the model
+        prob (ndarray): final probability vector
+        means (ndarray): final means for each Gaussian component
+        Sigma (ndarray): final shared cov matrix
+        loglik (float): final log-likelihood of the model
     """
 
     log_likelihoods = []
@@ -139,7 +124,7 @@ def myEM(data, G, prob, means, Sigma, itmax=100):
         current_loglik = loglik(data, G, prob, means, Sigma)
         log_likelihoods.append(current_loglik)
 
-        if iteration > 0 and abs(log_likelihoods[-1] - log_likelihoods[-2]) < 1e-6:
+        if iteration > 0 and abs(log_likelihoods[-1] - log_likelihoods[-2]) < THRESHOLD:
             break
 
     return prob, means, Sigma, log_likelihoods[-1]
