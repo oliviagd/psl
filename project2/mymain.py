@@ -95,7 +95,7 @@ if __name__ == "__main__":
         y_train = train["Weekly_Sales"]
 
         X_train, X_test = apply_svd_by_department(X_train, test)
-
+        
         # fit model
         model = LinearRegression()
         model.fit(X_train.drop(columns=["Dept", "Date"]), y_train)
