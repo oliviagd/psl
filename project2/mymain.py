@@ -20,7 +20,7 @@ def apply_svd_by_department(train, test, k=8):
     svd_columns = [f"svd_{i}" for i in range(k)]
     svd = TruncatedSVD(n_components=k)
 
-    dept_cols = [col for col in X_train.columns if "Dept_" in col]
+    dept_cols = [col for col in train.columns if "Dept_" in col]
 
     X_train_reduced = svd.fit_transform(train[dept_cols])
     X_train_reduced = pd.DataFrame(X_train_reduced, columns=svd_columns)
@@ -28,15 +28,11 @@ def apply_svd_by_department(train, test, k=8):
     X_test_reduced = svd.transform(test[dept_cols])
     X_test_reduced = pd.DataFrame(X_test_reduced, columns=svd_columns)
 
-    return (
-        pd.concat(
-            [train.drop(columns=dept_cols).reset_index(drop=True), X_train_reduced],
-            axis=1,
-        ),
-        pd.concat(
-            [test.drop(columns=dept_cols).reset_index(drop=True), X_test_reduced],
-            axis=1,
-        ),
+    train = train.drop(columns=dept_cols).reset_index(drop=True)
+    test = test.drop(columns=dept_cols).reset_index(drop=True)
+
+    return pd.concat([train, X_train_reduced], axis=1), pd.concat(
+        [test, X_test_reduced], axis=1
     )
 
 
@@ -47,16 +43,16 @@ if __name__ == "__main__":
     )
     results["Date"] = pd.to_datetime(results["Date"])
 
-    train = pd.read_csv(f"train.csv")
-    test = pd.read_csv(f"test.csv")
+    all_train = pd.read_csv(f"train.csv")
+    all_test = pd.read_csv(f"test.csv")
 
-    train_transform = add_date_features(train)
-    test_transform = add_date_features(test)
+    all_train = add_date_features(all_train)
+    all_test = add_date_features(all_test)
 
     # Filter out rows with no store/dept in both train and test
-    train["istrain"] = 1
-    test["istrain"] = 0
-    df = pd.concat([train, test])
+    all_train["istrain"] = 1
+    all_test["istrain"] = 0
+    df = pd.concat([all_train, all_test])
 
     valid_groups = df.groupby(["Store", "Dept"])["istrain"].transform(
         lambda x: set(x) == {0, 1}
@@ -81,14 +77,14 @@ if __name__ == "__main__":
             columns=["istrain", "Weekly_Sales"]
         )
 
-        data_by_store.append((train_tmp, test_tmp))
+        data_by_store.append((store, train_tmp, test_tmp))
 
     errors, preds = [], []
-    for store_train, store_test in data_by_store:
-        X_train = store_train.drop(columns=["Weekly_Sales"])
-        y_train = store_train["Weekly_Sales"]
+    for store, train, test in data_by_store:
+        X_train = train.drop(columns=["Weekly_Sales"])
+        y_train = train["Weekly_Sales"]
 
-        X_train, X_test = apply_svd_by_department(X_train, store_test)
+        X_train, X_test = apply_svd_by_department(X_train, test)
 
         # fit model
         model = LinearRegression()
@@ -102,14 +98,14 @@ if __name__ == "__main__":
         store_preds = X_test[["Store", "Dept", "Date", "IsHoliday", "Weekly_Pred"]]
         preds.append(store_preds)
         y_true = pd.merge(
-            results, store_preds, on=["Store", "Dept", "Date", "IsHoliday"]
-        ).Weekly_Sales
+            results, store_preds, on=["Store", "Dept", "Date", "IsHoliday"], how="inner"
+        )["Weekly_Sales"]
 
         weights = np.where(store_preds["IsHoliday"] == True, 5, 1)
         wmase = mean_absolute_error(y_pred, y_true, sample_weight=weights)
 
-        errors.append((store, wmase))
+        print(f"Error for Store {store}: {wmase}")
+        errors.append(wmase)
 
     pd.concat(preds).to_csv("mypred.csv", index=False)
-    total_error = sum([error for store, error in errors])
-    print(f"WMASE: {total_error}")
+    print(f"WMASE: {sum(errors)}")
