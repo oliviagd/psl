@@ -6,21 +6,6 @@ from sklearn.metrics import mean_absolute_error
 from sklearn.linear_model import LinearRegression
 
 
-def svd_dept(data, n_components=5):
-    """
-    Apply SVD for dimensionality reduction by Department.
-    """
-    svd_results = []
-    for dept, group in data.groupby("Dept"):
-        weekly_sales_pivot = group.pivot(
-            index="Date", columns="Store", values="Weekly_Sales"
-        ).fillna(0)
-        svd = TruncatedSVD(n_components=n_components)
-        svd_transformed = svd.fit_transform(weekly_sales_pivot)
-        svd_results.append((dept, svd_transformed))
-    return svd_results
-
-
 def add_date_features(df):
     df["Date"] = pd.to_datetime(df["Date"])
     df["Year"] = df["Date"].dt.year
@@ -38,7 +23,6 @@ if __name__ == "__main__":
 
     train = pd.read_csv(f"train.csv")
     test = pd.read_csv(f"test.csv")
-    weights = np.where(train["IsHoliday"] == True, 5, 1)
 
     train_transform = add_date_features(train)
     test_transform = add_date_features(test)
@@ -53,6 +37,8 @@ if __name__ == "__main__":
     )
     filtered_df = df[valid_groups]
 
+    # split up train data by store so that we can fit a model separately for
+    # each store
     data_by_store = []
 
     for store in filtered_df.Store.unique():
@@ -65,7 +51,6 @@ if __name__ == "__main__":
         test_tmp = df_tmp_w_categorical[df_tmp_w_categorical["istrain"] == 0].drop(
             columns=["istrain", "Weekly_Sales"]
         )
-        # print(f"test shape: {test_tmp.shape}")
 
         data_by_store.append((train_tmp, test_tmp))
 
@@ -79,7 +64,6 @@ if __name__ == "__main__":
         model.fit(X.drop(columns=["Dept", "Date"]), y)
 
         # predict and calculate error
-        weights = np.where(store_test["IsHoliday"] == True, 5, 1)
         y_pred = model.predict(store_test.drop(columns=["Dept", "Date"]))
         store_test["Weekly_Pred"] = y_pred
 
@@ -90,6 +74,7 @@ if __name__ == "__main__":
             results, store_preds, on=["Store", "Dept", "Date", "IsHoliday"]
         ).Weekly_Sales
 
+        weights = np.where(store_preds["IsHoliday"] == True, 5, 1)
         wmase = mean_absolute_error(y_pred, y_true, sample_weight=weights)
 
         errors.append((store, wmase))
