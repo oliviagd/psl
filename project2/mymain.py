@@ -36,6 +36,39 @@ def apply_svd_by_department(train, test, k=8):
     )
 
 
+def filter_by_common_rows(train, test):
+    train["istrain"] = 1
+    test["istrain"] = 0
+    df = pd.concat([train, test])
+
+    valid_groups = df.groupby(["Store", "Dept"])["istrain"].transform(
+        lambda x: set(x) == {0, 1}
+    )
+    return df[valid_groups]
+
+
+def split_data_by_store(df):
+    data_by_store = []
+
+    for store in df.Store.unique():
+        # filter data by store
+        df_tmp = df[df["Store"] == store]
+
+        # one-hot encode department variable
+        dummies = pd.get_dummies(df_tmp["Dept"], prefix="Dept", dtype=int)
+        df_tmp_w_categorical = pd.concat([df_tmp, dummies], axis=1)
+        train_tmp = df_tmp_w_categorical[df_tmp_w_categorical["istrain"] == 1].drop(
+            columns=["istrain"]
+        )
+        test_tmp = df_tmp_w_categorical[df_tmp_w_categorical["istrain"] == 0].drop(
+            columns=["istrain", "Weekly_Sales"]
+        )
+
+        data_by_store.append((store, train_tmp, test_tmp))
+
+    return data_by_store
+
+
 if __name__ == "__main__":
 
     results = pd.read_csv(
@@ -50,34 +83,11 @@ if __name__ == "__main__":
     all_test = add_date_features(all_test)
 
     # Filter out rows with no store/dept in both train and test
-    all_train["istrain"] = 1
-    all_test["istrain"] = 0
-    df = pd.concat([all_train, all_test])
-
-    valid_groups = df.groupby(["Store", "Dept"])["istrain"].transform(
-        lambda x: set(x) == {0, 1}
-    )
-    filtered_df = df[valid_groups]
+    filtered_df = filter_by_common_rows(all_train, all_test)
 
     # split up train data by store so that we can fit a model separately for
     # each store. list will hold tuples of (train, test) data for each store
-    data_by_store = []
-
-    for store in filtered_df.Store.unique():
-        # filter data by store
-        df_tmp = filtered_df[filtered_df["Store"] == store]
-
-        # one-hot encode department variable
-        dummies = pd.get_dummies(df_tmp["Dept"], prefix="Dept", dtype=int)
-        df_tmp_w_categorical = pd.concat([df_tmp, dummies], axis=1)
-        train_tmp = df_tmp_w_categorical[df_tmp_w_categorical["istrain"] == 1].drop(
-            columns=["istrain"]
-        )
-        test_tmp = df_tmp_w_categorical[df_tmp_w_categorical["istrain"] == 0].drop(
-            columns=["istrain", "Weekly_Sales"]
-        )
-
-        data_by_store.append((store, train_tmp, test_tmp))
+    data_by_store = split_data_by_store(filtered_df)
 
     errors, preds = [], []
     for store, train, test in data_by_store:
@@ -104,7 +114,7 @@ if __name__ == "__main__":
         weights = np.where(store_preds["IsHoliday"] == True, 5, 1)
         wmase = mean_absolute_error(y_pred, y_true, sample_weight=weights)
 
-        print(f"Error for Store {store}: {wmase}")
+        #print(f"Error for Store {store}: {wmase}")
         errors.append(wmase)
 
     pd.concat(preds).to_csv("mypred.csv", index=False)
