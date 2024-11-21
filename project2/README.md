@@ -19,11 +19,13 @@ We referenced the following in our implementation
 
 For approach, we followed the guide provided by https://campuswire.com/c/GB46E5679/feed
 
-The script processes and predicts weekly sales data by leveraging various data preprocessing techniques coupled with a linear regression model.
-To start, the svd_dept function applies Singular Value Decomposition (SVD) to smooth sales data for each department. It pivots the data into a matrix with `Date` as rows and `Store` as columns, centers the matrix by subtracting column means, and performs SVD to decompose it into singular vectors. The matrix is then reduced to 8 components, reconstructed, and re-centered, resulting in a smoothed dataset. This smoothed data is returned in its original structure to preserve compatibility with downstream processes. Next, to ensure consistency between the training and testing datasets, only shared values in specified identifier columns, `Store` and `Dept` are retained in both datasets. We find the unique pairs of (`Store`, `Dept`) and filter both train and test datasets accordingly. 
-We then add columns `Week`, `Year`, and `Year^2`, derived from the `Date` field, where `Year` is the year, `Week` is a numerical column with range [1,52], and `Year^2` is the squared year.
-
-Weekly sales are trained and predicted for each (`Store`, `Dept`) combination. It merges the smoothed sales data with the original training dataset and iterates over all unique (`Store`, `Dept`) pairs. For each pair, a linear regression model is fit against the data filtered by the pair values. The model is then used to predict weekly sales for corresponding filtered test data. 
+The script processes and predicts weekly sales data by leveraging various data preprocessing techniques coupled with an ordinary least squares linear regression model.<br>
+To start, the svd_dept function applies Singular Value Decomposition (SVD) to smooth sales data for each department. It pivots the data into a matrix with `Date` as rows and `Store` as columns, centers the matrix by subtracting column means, and performs SVD to decompose it into singular vectors. The matrix is then reduced to 8 components, reconstructed, and re-centered, resulting in a smoothed dataset. This smoothed data is returned in its original structure to preserve compatibility with downstream processes. <br>
+Next, to ensure consistency between the training and testing datasets, only shared values in specified identifier columns, `Store` and `Dept` are retained in both datasets. We find the unique pairs of (`Store`, `Dept`) and filter both train and test datasets accordingly. 
+We then add columns `Week`, `Year`, and `Year^2`, derived from the `Date` field, where `Year` is the year, `Week` is a numerical column with range [1,52], and `Year^2` is the squared year.<br>
+Before fitting, we identify and remove redundant columns in the training data by checking for perfect linear relationships (indicated by negligible residuals in a least-squares fit). The columns identified as redundant are also removed from the test set.<br>
+trained and predicted for each (`Store`, `Dept`) combination. It merges the smoothed sales data with the original training dataset and 
+We iterate over all unique (`Store`, `Dept`) pairs, filter the training and tests sets on the pair values, and fit an OLS model to predict Weekly Sales. We then use the model to predict Weekly Sales for the corresponding test data.
 
 ## Performance metrics
 
