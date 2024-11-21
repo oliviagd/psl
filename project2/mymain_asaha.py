@@ -163,8 +163,7 @@ def run_hint_2(args):
 
     keys = list(train_split)
 
-    for key_idx, key in enumerate(keys):
-        # print(f'key: {key_idx + 1} (of {len(keys)})')
+    for key in enumerate(keys):
         X_train = train_split[key]
         X_test = test_split[key]
     
