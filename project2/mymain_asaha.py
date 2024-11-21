@@ -131,6 +131,7 @@ def preprocess(data):
 #    data['IsHoliday'] = data['IsHoliday'].apply(int)
     return data
 
+
 def run_hint_2(args):
     fold_num, train_csv, test_csv, pred_csv = args
     print(f"Running fold {fold_num + 1}")
@@ -163,7 +164,7 @@ def run_hint_2(args):
 
     keys = list(train_split)
 
-    for key in enumerate(keys):
+    for key in keys:
         X_train = train_split[key]
         X_test = test_split[key]
     
