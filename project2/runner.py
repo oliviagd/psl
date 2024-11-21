@@ -1,6 +1,8 @@
+import importlib
 import os
 import sys
 import time
+# TODO: remove tqdm
 from tqdm import tqdm
 
 
@@ -9,7 +11,9 @@ def run_fold(fold_data, code_path):
     start_time = time.time()
 
     try:
-        os.system(f"python3 {code_path}")
+        module = importlib.import_module(code_path)
+        module.main()
+        # os.system(f"python3 '{code_path}'")
 
     except Exception as e:
         print(f"Error running {code_path} in {fold_data}: {e}")
@@ -20,18 +24,17 @@ def run_fold(fold_data, code_path):
     print(f"Execution time for {fold_data}: {execution_time:.2f} seconds")
 
 
-def main(code_script="mymain.py"):
+def main(code_script="mymain"):
     folds = [f"fold_{i}" for i in range(1, 11)]
 
     cwd = os.getcwd()
 
     project_data_path = os.path.join(cwd, "Proj2_Data")
-    code_path = os.path.join(cwd, code_script)
 
     for fold in tqdm(folds, desc="Running Project 2"):
         fold_data = os.path.join(project_data_path, fold)
 
-        run_fold(fold_data, code_path)
+        run_fold(fold_data, code_script)
 
         print()
 

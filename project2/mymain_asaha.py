@@ -227,6 +227,10 @@ def run_hint_2(args):
         X_train = X_train.drop(columns=cols_to_drop)
         X_test = X_test.drop(columns=cols_to_drop)
 
+        if 'Yr' in X_train.columns:
+            X_train['Yr^2'] = X_train['Yr'] ** 2
+            X_test['Yr^2'] = X_test['Yr'] ** 2
+
         model = sm.OLS(Y, X_train).fit()
         mycoef = model.params.fillna(0)
 

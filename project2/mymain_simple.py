@@ -11,7 +11,7 @@ def add_date_features(df):
     return df
 
 
-if __name__ == "__main__":
+def main():
     test_with_label = pd.read_csv(
         "/Users/oliviadalglish/UIUC/tmp/psl/project2/Proj2_Data/test_with_label.csv"
     )
@@ -40,3 +40,8 @@ if __name__ == "__main__":
             sample_weight=test["weight"],
         )
     )
+
+
+if __name__ == "__main__":
+    main()
+    
