@@ -2,3 +2,5 @@
 .ipynb_checkpoints
 quiz/
 .vscode
+__pycache__
+
