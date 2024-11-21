@@ -43,9 +43,9 @@ def apply_svd_by_department(train, test, k=8):
     )
 
 
-def main():
+if __name__ == "__main__":
     test_with_label = pd.read_csv(
-        "../test_with_label.csv"
+        "/Users/oliviadalglish/UIUC/tmp/psl/project2/Proj2_Data/test_with_label.csv"
     )
 
     train = pd.read_csv(f"train.csv")
@@ -85,6 +85,3 @@ def main():
             sample_weight=all_preds["weight"],
         )
     )
-
-if __name__ == "__main__":
-    main()
