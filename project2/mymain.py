@@ -183,7 +183,7 @@ def run_all_folds():
 
 if __name__ == '__main__':
     # TODO: Enable before submitting
-    # main('train.csv', 'test.csv', 'mypred.csv')
+    main('train.csv', 'test.csv', 'mypred.csv')
 
     # TODO: Delete before submitting
-    run_all_folds()
+    # run_all_folds()
