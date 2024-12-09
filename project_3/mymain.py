@@ -1,10 +1,11 @@
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegressionCV
 
 
 def main():
+    np.random.seed(1735)
+
     train_file = 'train.csv'
     test_file = 'test.csv'
     submission_file = 'mysubmission.csv'
@@ -14,7 +15,7 @@ def main():
     X = train_df.drop(columns=['id', 'sentiment', 'review'])
     y = train_df['sentiment']
 
-    model = LogisticRegression(penalty=None)
+    model = LogisticRegressionCV(penalty='l2', scoring='roc_auc')
     model.fit(X, y)
 
     # Testing
