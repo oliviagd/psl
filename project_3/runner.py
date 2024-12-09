@@ -32,13 +32,8 @@ def main():
     folds = [f"split_{i}" for i in range(1, 6)]  # ['fold_1', 'fold_2', ..., 'fold_5']
 
     cwd = os.getcwd()
-    # print(f"cwd: {cwd}")
 
     project_data = os.path.join(cwd, 'F24_Proj3_data')
-    # print(f"Project Data: {project_data}")
-
-    code_path = os.path.join(cwd, 'mymain.py')
-    # print(f"code path: {code_path}")
 
     for fold in folds:
         fold_data = os.path.join(project_data, fold)
@@ -58,7 +53,6 @@ def main():
         print(f"{fold} auc: {auc:.4f} time: {execution_time:.2f} s")
 
     os.chdir(cwd)
-    print("All splits processed!")
 
 
 if __name__ == '__main__':
